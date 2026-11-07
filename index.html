@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CareFusion AI – Offline Multi-Agent Health Companion</title>
+<style>
+:root{--bg:#f2f7f9;--card:#fff;--tx:#12303a;--mu:#5d7882;--pr:#0a8f8f;--ok:#1f9d55;--wa:#e0a100;--al:#d93636;--bd:#d7e5ea}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1b21;--card:#14272f;--tx:#e6f2f5;--mu:#93aeb8;--bd:#25414b}}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:linear-gradient(120deg,#0a8f8f,#2563a8);color:#fff;padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:1.25rem}header small{opacity:.85;display:block}
+button{font:inherit;cursor:pointer;border:0;border-radius:8px;padding:8px 14px;background:var(--pr);color:#fff}
+button.sec{background:transparent;border:1px solid var(--bd);color:var(--tx)}
+#demoBtn{background:#fff;color:#0a6e6e;font-weight:700}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 12px;position:sticky;top:0;background:var(--bg);z-index:5}
+nav button{background:var(--card);color:var(--tx);border:1px solid var(--bd);white-space:nowrap}
+nav button.on{background:var(--pr);color:#fff}
+main{max-width:1050px;margin:auto;padding:0 12px 40px}
+.sec-p{display:none}.sec-p.on{display:block}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:1rem}.mu{color:var(--mu);font-size:.88rem}
+.big{font-size:2.2rem;font-weight:800}
+.bar{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%;transition:width .5s}
+label{display:block;font-size:.85rem;margin:8px 0 3px;color:var(--mu)}
+input,select{width:100%;padding:8px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font:inherit}
+input[type=checkbox]{width:auto;margin-right:6px}input[type=range]{padding:0}
+.chk label{display:flex;align-items:center;color:var(--tx);margin:5px 0}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.78rem;color:#fff}
+.ok{background:var(--ok)}.warn{background:var(--wa)}.alert{background:var(--al)}
+.agent{border-left:5px solid var(--ok)}.agent.warn{border-color:var(--wa)}.agent.alert{border-color:var(--al)}
+.agent.warn,.agent.alert,.agent.ok{background:var(--card)}
+.banner{border-radius:12px;padding:14px;margin-bottom:12px;color:#fff;font-weight:600;display:none}
+.spark{display:flex;align-items:flex-end;gap:4px;height:60px}.spark i{flex:1;background:var(--pr);border-radius:3px 3px 0 0;min-height:3px}
+dialog{max-width:640px;width:94%;border:0;border-radius:14px;background:var(--card);color:var(--tx);padding:18px}
+dialog::backdrop{background:#000a}
+.seg{padding:10px;border-radius:8px;border:1px solid var(--bd);margin:8px 0}.seg.now{border-color:var(--pr);background:#0a8f8f22}
+.seg b{color:var(--pr)}
+@media print{header,nav,button{display:none!important}.sec-p{display:block!important}}
+</style></head><body>
+<header><div><h1>🏥 CareFusion AI</h1><small>Offline • Privacy-first • Multi-agent health companion</small></div>
+<button id="demoBtn" onclick="openDemo()">🎬 3-Min Demo Script</button></header>
+<nav id="nav"></nav>
+<main>
+<div id="emBanner" class="banner"></div>
+
+<section class="sec-p on" id="p-dash">
+ <div class="grid">
+  <div class="card"><h3>Risk Score</h3><div class="big" id="riskV">–</div><div class="bar"><i id="riskB"></i></div><span id="riskL" class="pill"></span></div>
+  <div class="card"><h3>Recovery Score</h3><div class="big" id="recV">–</div><div class="bar"><i id="recB" style="background:var(--ok)"></i></div><div class="mu">0–100 improvement score</div></div>
+  <div class="card"><h3>Medication Adherence</h3><div class="big" id="adhV">–</div><div class="bar"><i id="adhB" style="background:#2563a8"></i></div><div class="mu" id="adhT"></div></div>
+ </div>
+ <div class="card"><h3>🧑‍⚕️ Daily Health Coach Summary</h3><ul id="coach" style="margin:0;padding-left:18px"></ul></div>
+ <div class="card"><h3>🤖 Agent Status</h3><div class="grid" id="agents"></div></div>
+ <div class="grid">
+  <div class="card"><h3>Systolic BP – last 7 days</h3><div class="spark" id="spBP"></div></div>
+  <div class="card"><h3>Steps – last 7 days</h3><div class="spark" id="spSt"></div></div>
+ </div>
+ <div class="card"><h3>🔍 Explainable AI – why this risk score?</h3><div id="why"></div></div>
+ <div class="card"><h3>🧬 Digital Health Twin</h3><div id="twin" class="grid"></div></div>
+</section>
+
+<section class="sec-p" id="p-log">
+ <div class="card"><h3>Log today's vitals</h3>
+ <div class="grid">
+  <div><label>Age</label><input id="age" type="number"></div>
+  <div><label>Height (cm)</label><input id="ht" type="number"></div>
+  <div><label>Systolic BP</label><input id="sys" type="number"></div>
+  <div><label>Diastolic BP</label><input id="dia" type="number"></div>
+  <div><label>Glucose (mg/dL)</label><input id="glu" type="number"></div>
+  <div><label>Weight (kg)</label><input id="wt" type="number"></div>
+  <div><label>Steps</label><input id="stp" type="number"></div>
+  <div><label>Sleep (hours)</label><input id="slp" type="number" step="0.5"></div>
+ </div><p><button onclick="saveLog()">Save & update agents</button> <button class="sec" onclick="resetAll()">Reset sample data</button></p></div>
+</section>
+
+<section class="sec-p" id="p-goals">
+ <div class="card"><h3>🎯 Personalised Goals</h3>
+ <div class="grid">
+  <div><label>Target weight (kg)</label><input id="gW" type="number"></div>
+  <div><label>Target systolic BP</label><input id="gB" type="number"></div>
+  <div><label>Daily steps target</label><input id="gS" type="number"></div>
+ </div><p><button onclick="saveGoals()">Save goals</button></p></div>
+ <div class="card" id="goalProg"></div>
+</section>
+
+<section class="sec-p" id="p-sym">
+ <div class="card chk"><h3>🩺 Symptom Checker (rule-based)</h3><div id="symList" class="grid"></div>
+ <p><button onclick="checkSym()">Analyse</button></p><div id="symOut"></div></div>
+</section>
+
+<section class="sec-p" id="p-rep">
+ <div class="card"><h3>📄 Report Analysis</h3>
+ <div class="grid">
+  <div><label>Hemoglobin (g/dL)</label><input id="rHb" type="number" step="0.1"></div>
+  <div><label>Total cholesterol (mg/dL)</label><input id="rCh" type="number"></div>
+  <div><label>HbA1c (%)</label><input id="rA1" type="number" step="0.1"></div>
+  <div><label>Creatinine (mg/dL)</label><input id="rCr" type="number" step="0.1"></div>
+ </div><p><button onclick="analyseRep()">Analyse report</button></p><div id="repOut"></div></div>
+</section>
+
+<section class="sec-p" id="p-med">
+ <div class="card"><h3>💊 Medication Tracking</h3><div id="medList"></div>
+ <div class="grid"><div><label>New medicine</label><input id="mName" placeholder="e.g. Metformin 500mg"></div>
+ <div><label>Time</label><select id="mTime"><option>Morning</option><option>Afternoon</option><option>Night</option></select></div></div>
+ <p><button onclick="addMed()">Add</button></p></div>
+</section>
+
+<section class="sec-p" id="p-em">
+ <div class="card chk"><h3>🚨 Emergency Detection</h3>
+ <p class="mu">Tick what is happening now. Rules run fully offline.</p>
+ <div id="emList" class="grid"></div>
+ <p><button style="background:var(--al)" onclick="checkEm()">Check emergency</button></p><div id="emOut"></div></div>
+</section>
+
+<section class="sec-p" id="p-sim">
+ <div class="card"><h3>🔮 What-If Simulator</h3>
+ <label>Weight change (kg): <b id="svW">0</b></label><input type="range" id="sW" min="-15" max="10" value="0">
+ <label>Extra steps per day: <b id="svS">0</b></label><input type="range" id="sS" min="0" max="8000" step="500" value="0">
+ <label>Sleep change (hours): <b id="svL">0</b></label><input type="range" id="sL" min="-2" max="3" step="0.5" value="0">
+ <label>Adherence target (%): <b id="svA">80</b></label><input type="range" id="sA" min="40" max="100" value="80">
+ <div class="grid" style="margin-top:12px"><div class="card"><div class="mu">Current risk</div><div class="big" id="simC">–</div></div>
+ <div class="card"><div class="mu">Projected risk (3 months)</div><div class="big" id="simP">–</div></div></div><div id="simT" class="mu"></div></div>
+</section>
+
+<section class="sec-p" id="p-week">
+ <div class="card"><h3>📊 Weekly Health Report</h3><div id="weekOut"></div><p><button onclick="window.print()">Print / Save PDF</button></p></div>
+</section>
+</main>
+
+<dialog id="demo"><h2 style="margin-top:0">🎬 3-Minute Demo Script</h2>
+<p class="mu">Timer: <b id="tm">3:00</b> <button onclick="startTimer()">▶ Start</button> <button class="sec" onclick="stopTimer()">■ Stop</button></p>
+<div id="segs"></div><p style="text-align:right"><button class="sec" onclick="document.getElementById('demo').close();stopTimer()">Close</button></p></dialog>
+
+<script>
+const $=id=>document.getElementById(id);
+const KEY='carefusion_v2';
+const seed=()=>({age:45,ht:170,
+ logs:[{sys:128,dia:82,glu:104,wt:80,stp:6500,slp:7},{sys:130,dia:83,glu:106,wt:80,stp:6000,slp:6.5},{sys:129,dia:82,glu:108,wt:79.8,stp:5500,slp:6.5},{sys:132,dia:84,glu:110,wt:79.8,stp:5200,slp:6},{sys:133,dia:85,glu:112,wt:79.6,stp:4800,slp:6},{sys:135,dia:86,glu:112,wt:79.5,stp:4500,slp:5.5},{sys:138,dia:88,glu:115,wt:79.5,stp:4200,slp:5.5}],
+ adh:[90,90,88,85,80,75,70],
+ meds:[{n:'Amlodipine 5mg',t:'Morning',d:true},{n:'Metformin 500mg',t:'Afternoon',d:false},{n:'Atorvastatin 10mg',t:'Night',d:false}],
+ goals:{w:74,b:125,s:8000}});
+let S=JSON.parse(localStorage.getItem(KEY)||'null')||seed();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const cur=()=>S.logs[S.logs.length-1];
+const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const bmi=(w,h=S.ht)=>w/((h/100)**2);
+function risk(v){let r=0,f=[];const add=(p,t)=>{if(p){r+=p;f.push([p,t])}};
+ add(v.sys>=140?25:v.sys>=130?15:v.sys>=120?6:0,'Systolic BP '+v.sys+' mmHg');
+ add(v.glu>=126?20:v.glu>=100?10:0,'Glucose '+v.glu+' mg/dL');
+ const b=bmi(v.wt);add(b>=30?15:b>=25?8:0,'BMI '+b.toFixed(1));
+ add(v.stp<5000?10:v.stp<7500?4:0,'Low activity ('+v.stp+' steps)');
+ add(v.slp<6?10:v.slp<7?4:0,'Short sleep ('+v.slp+' h)');
+ add(v.adh<80?10:v.adh<90?4:0,'Medication adherence '+v.adh+'%');
+ add(S.age>=60?12:S.age>=45?7:0,'Age '+S.age);
+ return{r:Math.min(100,r),f:f.sort((a,b)=>b[0]-a[0])}}
+const adhNow=()=>S.meds.length?Math.round(S.meds.filter(m=>m.d).length/S.meds.length*100):0;
+const state=()=>{const c=cur();return{...c,adh:S.adh[S.adh.length-1]}};
+const rec=(r,adh)=>Math.max(0,Math.min(100,Math.round(100-r*.7+(adh-70)*.2)));
+const lvl=r=>r>=60?['High','alert']:r>=35?['Moderate','warn']:['Low','ok'];
+const col=c=>c=='alert'?'var(--al)':c=='warn'?'var(--wa)':'var(--ok)';
+
+function render(){
+ const v=state(),R=risk(v),L=lvl(R.r),rs=rec(R.r,v.adh);
+ $('riskV').textContent=R.r;$('riskB').style.width=R.r+'%';$('riskB').style.background=col(L[1]);
+ $('riskL').textContent=L[0]+' risk';$('riskL').className='pill '+L[1];
+ $('recV').textContent=rs;$('recB').style.width=rs+'%';
+ $('adhV').textContent=v.adh+'%';$('adhB').style.width=v.adh+'%';
+ const a0=S.adh[0];$('adhT').textContent='Week start '+a0+'% → now '+v.adh+'%';
+ // coach
+ const prev=S.logs.slice(0,-1),pS=avg(prev.map(x=>x.sys)),dS=((v.sys-pS)/pS*100);
+ const c=[];
+ c.push(`Your BP ${dS>=0?'increased':'decreased'} by ${Math.abs(dS).toFixed(1)}% versus your weekly average (${v.sys} vs ${pS.toFixed(0)} mmHg).`);
+ c.push(`Adherence ${S.adh[0]>v.adh?'dropped':'rose'} from ${S.adh[0]}% to ${v.adh}% this week.`);
+ const sd=v.stp-avg(prev.map(x=>x.stp));c.push(`Activity is ${sd<0?'down':'up'} ${Math.abs(Math.round(sd))} steps vs average.`);
+ if(v.slp<6.5)c.push('Sleep is under 6.5 h – poor sleep can raise BP and glucose.');
+ c.push('Top action today: '+(v.adh<80?'take all scheduled medicines on time.':v.sys>=130?'walk 30 minutes and cut salt intake.':'keep up the current routine.'));
+ $('coach').innerHTML=c.map(x=>'<li>'+x+'</li>').join('');
+ // agents
+ const med=v.adh<75?'alert':v.adh<90?'warn':'ok',vit=v.sys>=140||v.glu>=126?'alert':v.sys>=130||v.glu>=100?'warn':'ok',
+ life=v.stp<5000||v.slp<6?'warn':'ok';
+ const ag=[['Vitals Agent',vit,`BP ${v.sys}/${v.dia}, glucose ${v.glu}`],['Medication Agent',med,`Adherence ${v.adh}%`],['Lifestyle Agent',life,`${v.stp} steps, ${v.slp} h sleep`],['Risk Agent',L[1],`Score ${R.r}/100`],['Emergency Agent',v.sys>=180?'alert':'ok',v.sys>=180?'Crisis-level BP!':'No emergency signs'],['Coach Agent','ok','Daily summary ready']];
+ $('agents').innerHTML=ag.map(a=>`<div class="card agent ${a[1]}" style="margin:0"><b>${a[0]}</b> <span class="pill ${a[1]}">${a[1]=='ok'?'Active':a[1]=='warn'?'Watch':'Alert'}</span><div class="mu">${a[2]}</div></div>`).join('');
+ spark('spBP',S.logs.map(x=>x.sys),100);spark('spSt',S.logs.map(x=>x.stp),0);
+ $('why').innerHTML=R.f.length?R.f.map(f=>`<div>+${f[0]} pts — ${f[1]}<div class="bar"><i style="width:${f[0]*4}%;background:var(--pr)"></i></div></div>`).join(''):'No risk factors detected.';
+ const b=bmi(v.wt);
+ $('twin').innerHTML=[['BMI',b.toFixed(1)],['BP',v.sys+'/'+v.dia],['Glucose',v.glu],['Weight',v.wt+' kg'],['Sleep',v.slp+' h'],['Biological load',R.r>=60?'High':R.r>=35?'Medium':'Low']].map(x=>`<div class="card" style="margin:0"><div class="mu">${x[0]}</div><b style="font-size:1.3rem">${x[1]}</b></div>`).join('');
+ // inputs
+ [['age',S.age],['ht',S.ht],['sys',v.sys],['dia',v.dia],['glu',v.glu],['wt',v.wt],['stp',v.stp],['slp',v.slp],['gW',S.goals.w],['gB',S.goals.b],['gS',S.goals.s]].forEach(([k,x])=>$(k).value=x);
+ goals(v);meds();sim();week(v,R,rs);
+}
+function spark(id,a,base){const mx=Math.max(...a),mn=base?Math.min(base,...a)-5:0;$(id).innerHTML=a.map(x=>`<i title="${x}" style="height:${Math.max(6,(x-mn)/(mx-mn||1)*100)}%"></i>`).join('')}
+function goals(v){const g=S.goals,s0=S.logs[0];
+ const p=(label,now,start,t,unit,lower)=>{const pc=Math.max(0,Math.min(100,Math.abs(start-now)/(Math.abs(start-t)||1)*100*((lower?now<=start:now>=start)?1:0)));return `<div><b>${label}</b> <span class="mu">${now}${unit} → target ${t}${unit}</span><div class="bar"><i style="width:${now==t?100:pc}%;background:var(--ok)"></i></div></div>`};
+ $('goalProg').innerHTML='<h3>Progress</h3>'+p('Weight',v.wt,s0.wt,g.w,' kg',true)+p('Blood pressure',v.sys,s0.sys,g.b,' mmHg',true)+p('Activity',v.stp,s0.stp,g.s,' steps',false);}
+function saveGoals(){S.goals={w:+$('gW').value,b:+$('gB').value,s:+$('gS').value};save();render()}
+function saveLog(){S.age=+$('age').value;S.ht=+$('ht').value;
+ S.logs.push({sys:+$('sys').value,dia:+$('dia').value,glu:+$('glu').value,wt:+$('wt').value,stp:+$('stp').value,slp:+$('slp').value});
+ S.logs=S.logs.slice(-7);S.adh.push(adhNow());S.adh=S.adh.slice(-7);save();render();emAuto();show('dash')}
+function meds(){$('medList').innerHTML=S.meds.map((m,i)=>`<div class="chk"><label><input type="checkbox" ${m.d?'checked':''} onchange="tick(${i})"> ${m.n} <span class="mu">(${m.t})</span></label></div>`).join('')}
+function tick(i){S.meds[i].d=!S.meds[i].d;S.adh[S.adh.length-1]=adhNow();save();render()}
+function addMed(){const n=$('mName').value.trim();if(!n)return;S.meds.push({n,t:$('mTime').value,d:false});$('mName').value='';save();render()}
+const SYM={'Fever':['Viral infection','Seasonal flu'],'Cough':['Respiratory infection'],'Headache':['Tension headache','High BP'],'Chest pain':['Cardiac concern'],'Shortness of breath':['Cardiac or lung concern'],'Fatigue':['Anaemia','Diabetes','Poor sleep'],'Excess thirst':['Diabetes'],'Frequent urination':['Diabetes'],'Dizziness':['High/low BP','Dehydration'],'Nausea':['Gastric issue']};
+$('symList').innerHTML=Object.keys(SYM).map(k=>`<label><input type="checkbox" value="${k}"> ${k}</label>`).join('');
+function checkSym(){const s=[...document.querySelectorAll('#symList input:checked')].map(x=>x.value);if(!s.length){$('symOut').innerHTML='<p class="mu">Select at least one symptom.</p>';return}
+ const sc={};s.forEach(k=>SYM[k].forEach(c=>sc[c]=(sc[c]||0)+1));
+ const out=Object.entries(sc).sort((a,b)=>b[1]-a[1]);const urgent=s.includes('Chest pain')||s.includes('Shortness of breath');
+ $('symOut').innerHTML=(urgent?'<p><span class="pill alert">Urgent</span> Chest pain / breathlessness needs medical attention — use the Emergency tab.</p>':'')+'<b>Possible causes (not a diagnosis):</b><ul>'+out.map(o=>`<li>${o[0]} <span class="mu">(${o[1]} matching symptom${o[1]>1?'s':''})</span></li>`).join('')+'</ul>'}
+function analyseRep(){const g=id=>parseFloat($(id).value),o=[];
+ const t=(v,lo,hi,n,u)=>{if(isNaN(v))return;const s=v<lo?['Low','warn']:v>hi?['High','alert']:['Normal','ok'];o.push(`<div>${n}: <b>${v} ${u}</b> <span class="pill ${s[1]}">${s[0]}</span></div>`)};
+ t(g('rHb'),12,17,'Hemoglobin','g/dL');t(g('rCh'),0,200,'Cholesterol','mg/dL');t(g('rA1'),4,5.6,'HbA1c','%');t(g('rCr'),0.6,1.3,'Creatinine','mg/dL');
+ $('repOut').innerHTML=o.join('')||'<p class="mu">Enter at least one value.</p>'}
+const EM={'Face drooping':'S','Arm weakness':'S','Slurred speech':'S','Sudden vision loss / severe headache':'S','Crushing chest pain / pressure':'H','Pain spreading to arm / jaw':'H','Cold sweat with breathlessness':'H','Extreme thirst + confusion':'D','Fruity breath / rapid breathing':'D','Shaky, sweaty, near fainting':'D'};
+$('emList').innerHTML=Object.keys(EM).map(k=>`<label><input type="checkbox" value="${k}"> ${k}</label>`).join('');
+function emResult(sel){const c={S:0,H:0,D:0};sel.forEach(k=>c[EM[k]]++);const r=[];
+ if(c.S)r.push(['⚠️ Possible STROKE warning','Note the time symptoms began. Call 108/112 immediately. Do not give food or drink.']);
+ if(c.H)r.push(['⚠️ Possible HEART ATTACK warning','Call 108/112 now. Sit upright, stay calm, chew aspirin only if not allergic and advised by a doctor.']);
+ if(c.D)r.push(['⚠️ Possible DIABETIC emergency','Check glucose. If low and conscious, take fast sugar; if confused or unresponsive, call 108/112.']);return r}
+function checkEm(){const sel=[...document.querySelectorAll('#emList input:checked')].map(x=>x.value),r=emResult(sel);
+ $('emOut').innerHTML=r.length?r.map(x=>`<div class="card agent alert"><b>${x[0]}</b><div>${x[1]}</div></div>`).join(''):'<p class="mu">No emergency pattern selected. If you feel unwell, seek care.</p>'}
+function emAuto(){const v=cur(),m=[];if(v.sys>=180||v.dia>=120)m.push('Hypertensive crisis range BP — seek urgent care (108/112).');if(v.glu>=300)m.push('Very high glucose — possible diabetic emergency.');if(v.glu<70)m.push('Low glucose — take fast sugar and recheck.');
+ const b=$('emBanner');b.style.display=m.length?'block':'none';b.style.background='var(--al)';b.innerHTML='🚨 '+m.join('<br>')}
+function sim(){const v=state(),w=+$('sW').value,s=+$('sS').value,l=+$('sL').value,a=+$('sA').value;
+ $('svW').textContent=w;$('svS').textContent=s;$('svL').textContent=l;$('svA').textContent=a;
+ const p={...v,wt:v.wt+w,stp:v.stp+s,slp:Math.min(9,v.slp+l),adh:a,sys:Math.round(v.sys+w*1+(-s/1000*1.2)+(a-v.adh)*-.15),glu:Math.round(v.glu+w*.8-s/1000*1.5)};
+ const c=risk(v).r,n=risk(p).r;$('simC').textContent=c;$('simP').textContent=n;$('simP').style.color=n<c?'var(--ok)':n>c?'var(--al)':'';
+ $('simT').textContent=`Projected: BP ~${p.sys}, glucose ~${p.glu}, BMI ${bmi(p.wt).toFixed(1)}. Rule-based estimate, not a clinical prediction.`}
+['sW','sS','sL','sA'].forEach(i=>$(i).oninput=sim);
+function week(v,R,rs){const L=S.logs;const f=k=>avg(L.map(x=>x[k]));
+ $('weekOut').innerHTML=`<table style="width:100%;border-collapse:collapse"><tr><td>Avg BP</td><td><b>${f('sys').toFixed(0)}/${f('dia').toFixed(0)}</b></td></tr><tr><td>Avg glucose</td><td><b>${f('glu').toFixed(0)} mg/dL</b></td></tr><tr><td>Weight change</td><td><b>${(L[L.length-1].wt-L[0].wt).toFixed(1)} kg</b></td></tr><tr><td>Avg steps</td><td><b>${f('stp').toFixed(0)}</b></td></tr><tr><td>Avg sleep</td><td><b>${f('slp').toFixed(1)} h</b></td></tr><tr><td>Adherence</td><td><b>${S.adh[0]}% → ${v.adh}%</b></td></tr><tr><td>Risk / Recovery</td><td><b>${R.r} / ${rs}</b></td></tr></table><p class="mu">Disclaimer: informational only, not medical advice.</p>`}
+const TABS=[['dash','Dashboard'],['log','Log Vitals'],['goals','Goals'],['sym','Symptoms'],['rep','Reports'],['med','Medication'],['em','Emergency'],['sim','What-If'],['week','Weekly']];
+$('nav').innerHTML=TABS.map(t=>`<button data-t="${t[0]}" onclick="show('${t[0]}')">${t[1]}</button>`).join('');
+function show(t){document.querySelectorAll('.sec-p').forEach(x=>x.classList.toggle('on',x.id=='p-'+t));document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t))}
+function resetAll(){S=seed();save();render();emAuto()}
+const DEMO=[
+['0:00–0:20','Dashboard','Hi, this is CareFusion AI, an offline, privacy-first health companion. Everything you see runs in the browser — no cloud, no API key, no data leaves your device.',20,'dash'],
+['0:20–0:50','Daily Coach & Recovery Score','Every day the Coach Agent compares this week to last: BP up eight percent, adherence dropped from ninety to seventy. The recovery score from zero to one hundred shows how you are improving.',30,'dash'],
+['0:50–1:20','Multi-Agent Architecture & Explainable AI','Six agents — Vitals, Medication, Lifestyle, Risk, Emergency and Coach — each show live status cards. The Explainable AI panel lists exactly which factors added points to the risk score, so nothing is a black box.',30,'dash'],
+['1:20–1:50','Goals, Medication & Reports','Set personalised goals for weight, BP and activity and watch progress bars. Track medicines with one tap, and analyse lab values like hemoglobin, cholesterol and HbA1c in seconds.',30,'goals'],
+['1:50–2:25','Emergency Detection','Emergency Detection checks for stroke, heart attack and diabetic emergencies, and gives clear next steps with 108 and 112. A red banner also appears automatically if logged vitals reach crisis levels.',35,'em'],
+['2:25–2:50','What-If Simulator & Weekly Report','The What-If Simulator projects risk if you lose weight, walk more or sleep better. The Weekly Report summarises everything and prints to PDF for your doctor.',25,'sim'],
+['2:50–3:00','Closing','CareFusion AI: private, explainable, and ready to help — a complete MVP built to protect health before emergencies happen. Thank you.',10,'dash']];
+let tmr=null,t0=0;
+function openDemo(){$('segs').innerHTML=DEMO.map((d,i)=>`<div class="seg" id="sg${i}"><b>${d[0]} · ${d[1]}</b><div>${d[2]}</div></div>`).join('');$('demo').showModal()}
+function startTimer(){stopTimer();t0=Date.now();tmr=setInterval(()=>{const e=Math.floor((Date.now()-t0)/1000),r=Math.max(0,180-e);$('tm').textContent=Math.floor(r/60)+':'+String(r%60).padStart(2,'0');let a=0,i=0;DEMO.forEach((d,k)=>{if(e>=a)i=k;a+=d[3]});DEMO.forEach((d,k)=>$('sg'+k).classList.toggle('now',k==i&&r>0));if(r==0)stopTimer()},250)}
+function stopTimer(){clearInterval(tmr)}
+render();emAuto();show('dash');
+</script></body></html>
